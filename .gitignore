@@ -1,0 +1,9 @@
+notworking/
+*.bak
+.DS_STORE.vscode
+*.log
+preplugin/
+
+scripts/.DS_Store
+
+.DS_Store
