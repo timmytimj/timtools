@@ -1,0 +1,62 @@
+#!/bin/zsh
+# parse command-line arguments
+while getopts ":p:" opt; do
+  case ${opt} in
+    p )
+      path=$OPTARG
+      ;;
+    \? )
+      echo "Invalid option: $OPTARG" 1>&2
+      exit 1
+      ;;
+    : )
+      echo "Option -$OPTARG requires an argument." 1>&2
+      exit 1
+      ;;
+  esac
+done
+
+# validate input
+if [ -z "$path" ]; then
+  echo "Path argument (-p) is required" 1>&2
+  exit 1
+fi
+
+if [ ! -d "$path" ]; then
+  echo "$path is not a directory" 1>&2
+  exit 1
+fi
+
+# determine shell
+shell=$(/bin/ps -p $$ -o comm=)
+
+# modify rc file
+case "$shell" in
+  *bash* )
+    rcfile="$HOME/.bashrc"
+    ;;
+  *zsh* )
+    rcfile="$HOME/.zshrc"
+    ;;
+  * )
+    echo "Unsupported shell: $shell" 1>&2
+    exit 1
+    ;;
+esac
+
+newPathEntry=":$path"
+if ! /usr/bin/grep -qF "$newPathEntry" "$rcfile"; then
+  if /usr/bin/grep -qxF "export PATH" "$rcfile"; then
+    /usr/bin/sed -i '' 's|export PATH="\(.*\)"|export PATH="\1'$newPathEntry'"|' "$rcfile"
+  else
+    echo -e "\n# PATH Updates" >> "$rcfile"
+    echo "export PATH=\"\$PATH$newPathEntry\"" >> "$rcfile"
+  fi
+
+  echo "Added \"$path\" path initialization"
+else
+  echo "Path already in PATH"
+fi
+
+echo "Updated current env"
+

@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+import os
+import subprocess
+import sys
+import shutil
+
+def log_to_file(log_type, message):
+    log_directory = os.path.expanduser("~/tmp/logs/")
+    if not os.path.exists(log_directory):
+        os.makedirs(log_directory)
+    with open(f"{log_directory}/{log_type}.log", "a") as log_file:
+        log_file.write(f"{message}\n")
+
+def is_file_on_disk(filepath):
+    # Use brctl to check if the file is on disk
+    result = subprocess.run(['brctl', 'status', filepath], capture_output=True, text=True)
+    return 'Status: local' in result.stdout
+
+def download_file_from_icloud(filepath):
+    # Use brctl to download the file
+    subprocess.run(['brctl', 'download', filepath])
+    # Wait for the download to finish
+    while not is_file_on_disk(filepath):
+        pass
+
+def copy_file_with_metadata(source, target):
+    # Copy the file
+    shutil.copy2(source, target)
+    # Use xattr to copy extended attributes
+    subprocess.run(['xattr', '-wx', source, target])
+    # Note: You can add more commands for xmp, exiftool, and SetFile here as needed
+
+def check_disk_space(target_dir):
+    stat = shutil.disk_usage(target_dir)
+    return stat.free
+
+def main():
+    source_dir = sys.argv[1]
+    target_dir = sys.argv[2]
+
+    # Check if source and target directories exist
+    if not os.path.exists(source_dir):
+        print(f"Error: Source directory {source_dir} does not exist.")
+        sys.exit(1)
+    
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+
+    for root, _, files in os.walk(source_dir):
+        for filename in files:
+            filepath = os.path.join(root, filename)
+            
+            if not is_file_on_disk(filepath):
+                download_file_from_icloud(filepath)
+            
+            # Check disk space and alert user if needed
+            required_space = os.path.getsize(filepath)
+            if check_disk_space(target_dir) < required_space:
+                input("Not enough disk space. Free up some space and press Enter to continue...")
+            
+            # Copy the file
+            target_filepath = os.path.join(target_dir, filename)
+            copy_file_with_metadata(filepath, target_filepath)
+
+            # Ask user for deletion
+            delete_choice = input(f"Do you want to delete the original file {filepath}? (yes/no) ")
+            if delete_choice.lower() == 'yes':
+                os.remove(filepath)
+                log_to_file('deleted', f"Deleted {filepath}")
+
+if __name__ == "__main__":
+    main()

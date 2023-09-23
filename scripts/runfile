@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Replace 'yourfile.txt' with your filename
+filename='yourfile.txt' 
+
+while IFS= read -r line
+do
+  echo "Executing: $line"
+  # Run the command and ignore errors
+  $line || true
+
+  # Remove the line from the file
+  sed -i "/$line/d" $filename
+done < "$filename"
+

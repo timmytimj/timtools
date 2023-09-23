@@ -1,0 +1,47 @@
+#!/bin/bash
+
+inputFile=$1
+
+# Ensure PDF is in landscape mode
+gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -dAutoRotatePages=/All -sOutputFile=temp_landscape.pdf "$1" 
+
+inputFile="temp_landscape.pdf"
+
+# Create temporary directory for output in current working directory
+outputDir=$(mktemp -d "$(pwd)/outputDir.XXXXXX")
+
+# Split the Pdf file into separate pages
+pdftk $inputFile burst output "$outputDir/page_%02d.pdf"
+
+# Split each page into left and right
+for file in $(ls $outputDir | grep page_ | sort -n); do
+    echo "Processing $file ..."
+
+    # Determine output filenames
+    base_name=$(basename $file .pdf)
+    left_outfile="$outputDir/${base_name}_left.pdf"
+    right_outfile="$outputDir/${base_name}_right.pdf"
+    
+    # Crop the left side
+    gs -o $left_outfile -sDEVICE=pdfwrite -c "[/CropBox [0 0 421 595] /PAGES pdfmark" -f "$outputDir/$file"
+
+    # Crop the right side
+    gs -o $right_outfile -sDEVICE=pdfwrite -c "[/CropBox [421 0 842 595] /PAGES pdfmark" -f "$outputDir/$file"
+done
+
+# Sort extracted pages and merge them back
+files=$(ls $outputDir | grep -E '^page.*(_left|_right).pdf' | sort -n)
+pdftk ${files/#/$outputDir/} cat output "$outputDir/merged.pdf"
+
+# Create output filename
+file_prefix=$(echo $(basename $1 .pdf) | cut -c 1-16)
+date=$(date +"%Y%m%d%H%M")
+file_output="${file_prefix}_${date}.pdf"
+
+# Rename the merged file
+mv "$outputDir/merged.pdf" "$outputDir/$file_output"
+
+# Cleanup
+rm "$outputDir/page*" 
+
+echo "Processed file is in $outputDir as $file_output"
