@@ -1,0 +1,29 @@
+compare_lists() {
+  read -rep "Paste the desired list: " desired_list
+  read -rep "Paste the original list: " original_list
+  read -rp "Ignore case? [y/n]: " ignore_case
+  read -rp "Ignore extension? [y/n]: " ignore_extension
+  read -rp "Ignore whitespace? [y/n]: " ignore_whitespace
+
+  # Prepare sed options based on user preferences
+  sed_options=""
+  if [[ "$ignore_case" == "y" ]]; then
+    sed_options+="I"
+  fi
+  if [[ "$ignore_extension" == "y" ]]; then
+    sed_options+="E"
+  fi
+  if [[ "$ignore_whitespace" == "y" ]]; then
+    sed_options+="e"
+  fi
+
+  # Clean up and format the desired list
+  desired_list=$(echo "$desired_list" | sed -E "s/['\"]//g; s/([[:space:]]+|$)/\\\\|/g")
+
+  # Process the original list and return matching filenames in the original order
+  while IFS= read -r item; do
+    if [[ "$desired_list" =~ (^|[[:space:]])"$item"($|[[:space:]]) ]]; then
+      echo "$item"
+    fi
+  done < <(echo "$original_list" | sed -E "s/['\"]//g" | sed -${sed_options}n 'p')
+}
