@@ -1,0 +1,4 @@
+python3 launch.py --deepdanbooru --listen --port 9090 --api --cors-allow-origins http://localhost:5173 --xformers --cors-allow-origins https://localhost:5173 --cors-allow-origins https://mainops.local:5173 --cors-allow-origins https://10.0.0.199:5173 --cors-allow-origins http://10.0.0.199:5173 --cors-allow-origins http://localhost:9090 --cors-allow-origins https://localhost:9090 --cors-allow-origins https://0.0.0.0
+
+2023/11/15-19:04:44 --  
+set COMMANDLINE_ARGS=--api --port 9090 --listen --xformers --theme dark --deepdanbooru  --enable-insecure-extension-access --api-log --enable-console-prompts --cors-allow-origins-regex="^(10\.0\.0\.\d{1,3}|localhost|127\.\d{1,3}\.\d{1,3}\.\d{1,3})$" --update-all-extensions --no-hashing --allow-code
